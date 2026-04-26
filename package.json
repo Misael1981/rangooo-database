@@ -1,0 +1,27 @@
+{
+  "name": "@misael1981/rangooo-database",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "generated-client",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "npx prisma generate && tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prisma": "^6.19.3",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
