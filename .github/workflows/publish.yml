@@ -22,7 +22,10 @@ jobs:
 
       - run: npm ci
 
+      # Injetamos uma URL fictícia apenas para o Prisma não reclamar no build
       - run: npm run build
+        env:
+          DATABASE_URL: "postgresql://johndoe:randompassword@localhost:5432/mydb?schema=public"
 
       - run: npm publish
         env:
