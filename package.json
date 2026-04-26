@@ -1,6 +1,6 @@
 {
   "name": "@misael1981/rangooo-database",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,8 +10,7 @@
     "prisma"
   ],
   "scripts": {
-    "build": "npx prisma generate && tsc",
-    "prepublishOnly": "npm run build"
+    "build": "npx prisma generate && tsc"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
