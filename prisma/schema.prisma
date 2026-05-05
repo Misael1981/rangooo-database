@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -21,12 +21,12 @@ model User {
   updatedAt          DateTime         @updatedAt
   password           String?          @map("hashed_password")
   isProfileCompleted Boolean          @default(false)
-  deliveryPerson     DeliveryPerson?
   orders             Order[]
   restaurants        Restaurant[]
   restaurantRoles    RestaurantUser[]
   accounts           Account[]
   addresses          Address[]
+  deliveryPerson     DeliveryPerson?
   sessions           Session[]
 
   @@map("users")
@@ -129,162 +129,143 @@ model EnrollmentInvite {
 }
 
 model DeliveryPerson {
-  id               String  @id @default(uuid())
-  userId           String  @unique
-  document         String  @unique
-  documentImageUrl String?
-
-  vehicleType  VehicleType?
-  vehiclePlate String?
-
-  isOnline Boolean @default(false)
-
-  status     DeliveryPersonStatus @default(PENDING)
-  approvedAt DateTime?
-  approvedBy String?
-
-  rejectedAt      DateTime?
-  rejectionReason String?
-
-  rating      Float?
-  ratingCount Int    @default(0)
-
-  notes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id                String               @id @default(uuid())
+  userId            String               @unique
+  document          String               @unique
+  documentImageUrl  String?
+  status            DeliveryPersonStatus @default(PENDING)
+  approvedAt        DateTime?
+  approvedBy        String?
+  rejectedAt        DateTime?
+  rejectionReason   String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  isOnline          Boolean              @default(false)
+  notes             String?
+  rating            Float?
+  ratingCount       Int                  @default(0)
+  vehiclePlate      String?
+  vehicleType       VehicleType?
   pushSubscriptions PushSubscription[]
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deliveries        OrderDelivery[]
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliverySessions  DeliverySession[]
+  deliveries        OrderDelivery[]
   orderRejections   OrderRejection[]
 
   @@map("delivery_persons")
 }
 
 model PushSubscription {
-  id               String   @id @default(uuid())
+  id               String         @id @default(uuid())
   deliveryPersonId String
-  endpoint         String   @unique
+  endpoint         String         @unique
   auth             String
   p256dh           String
-  createdAt        DateTime @default(now())
-
-  deliveryPerson DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
 }
 
 model RestaurantPushSubscription {
-  id           String   @id @default(uuid())
+  id           String     @id @default(uuid())
   restaurantId String
-  endpoint     String   @unique
+  endpoint     String     @unique
   auth         String
   p256dh       String
-  createdAt    DateTime @default(now())
-
+  createdAt    DateTime   @default(now())
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 }
 
 model OrderRejection {
-  id               String   @id @default(cuid())
+  id               String         @id @default(cuid())
   orderId          String
   deliveryPersonId String
   reason           String?
-  createdAt        DateTime @default(now())
-
-  deliveryPerson DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+  createdAt        DateTime       @default(now())
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
 
   @@index([deliveryPersonId])
   @@map("order_rejections")
 }
 
 model DeliverySession {
-  id               String    @id @default(cuid())
-  deliveryPersonId String
-  date             DateTime  @default(now())
-  startTime        DateTime  @default(now())
-  endTime          DateTime?
-  lastRejectionAt  DateTime?
-  rejectionsCount  Int       @default(0)
-
-  ordersCompleted    Int     @default(0)
-  totalEarnings      Decimal @default(0) @db.Decimal(10, 2)
+  id                 String         @id @default(cuid())
+  deliveryPersonId   String
+  date               DateTime       @default(now())
+  startTime          DateTime       @default(now())
+  endTime            DateTime?
+  ordersCompleted    Int            @default(0)
+  totalEarnings      Decimal        @default(0) @db.Decimal(10, 2)
   sessionRating      Float?
-  sessionRatingCount Int     @default(0)
-
-  totalFeeToPay Decimal @default(0) @db.Decimal(10, 2)
-  isPaid        Boolean @default(false)
-
-  deliveryPerson DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+  sessionRatingCount Int            @default(0)
+  lastRejectionAt    DateTime?
+  rejectionsCount    Int            @default(0)
+  isPaid             Boolean        @default(false)
+  totalFeeToPay      Decimal        @default(0) @db.Decimal(10, 2)
+  deliveryPerson     DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
 
   @@unique([deliveryPersonId, date])
   @@map("delivery_sessions")
 }
 
 model Restaurant {
-  id             String             @id @default(uuid())
-  ownerId        String
-  name           String
-  slug           String             @unique
-  description    String?
-  avatarImageUrl String?
-  coverImageUrl  String?
-  category       RestaurantCategory @default(RESTAURANT)
-  latitude       Decimal?
-  longitude      Decimal?
-  isOpen         Boolean            @default(true)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  brandColors    Json?
-  socialMedia    Json?
-  city           String?
-  complement     String?
-  neighborhood   String?
-  number         String?
-  state          String?            @db.VarChar(2)
-  street         String?
-  zipCode        String?
-  email          String?
-
-  agentVersion  String?
-  lastPrintedAt DateTime?
-  printerConfig Json?
-  printerStatus String?   @default("disconnected")
-  printerType   String?
-  printingToken String?   @unique
-
-  isConfigured        Boolean   @default(false)
-  onboardingStep      Int       @default(1)
-  onboardingCompleted Boolean   @default(false)
-  publishedAt         DateTime?
-  imagePublicId       String?
-
-  deliveryFee        Decimal?       @db.Decimal(6, 2)
-  useRangoooDelivery Boolean        @default(false)
-  deliveryAreas      DeliveryArea[]
-  plan               PlanType       @default(BASICO)
-
+  id                         String                        @id @default(uuid())
+  ownerId                    String
+  name                       String
+  slug                       String                        @unique
+  description                String?
+  avatarImageUrl             String?
+  coverImageUrl              String?
+  category                   RestaurantCategory            @default(RESTAURANT)
+  latitude                   Decimal?
+  longitude                  Decimal?
+  isOpen                     Boolean                       @default(true)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  brandColors                Json?
+  socialMedia                Json?
+  city                       String?
+  complement                 String?
+  neighborhood               String?
+  number                     String?
+  state                      String?                       @db.VarChar(2)
+  street                     String?
+  zipCode                    String?
+  email                      String?
+  agentVersion               String?
+  lastPrintedAt              DateTime?
+  printerConfig              Json?
+  printerStatus              String?                       @default("disconnected")
+  printerType                String?
+  printingToken              String?                       @unique
+  deliveryFee                Decimal?                      @db.Decimal(6, 2)
+  isConfigured               Boolean                       @default(false)
+  onboardingStep             Int                           @default(1)
+  onboardingCompleted        Boolean                       @default(false)
+  publishedAt                DateTime?
+  imagePublicId              String?
+  plan                       PlanType                      @default(BASICO)
+  useRangoooDelivery         Boolean                       @default(false)
+  businessHours              BusinessHours[]
+  contacts                   ContactNumber[]
+  deliveryAreas              DeliveryArea[]
+  menuCategories             MenuCategory[]
+  orders                     Order[]
+  products                   Product[]
+  owner                      User                          @relation(fields: [ownerId], references: [id])
+  consumptionMethods         RestaurantConsumptionMethod[]
+  paymentMethods             RestaurantPaymentMethod[]
   restaurantPushSubscription RestaurantPushSubscription[]
-  businessHours      BusinessHours[]
-  contacts           ContactNumber[]
-  menuCategories     MenuCategory[]
-  orders             Order[]
-  products           Product[]
-  owner              User                          @relation(fields: [ownerId], references: [id])
-  consumptionMethods RestaurantConsumptionMethod[]
-  paymentMethods     RestaurantPaymentMethod[]
-  users              RestaurantUser[]
+  users                      RestaurantUser[]
 
   @@index([ownerId])
 }
 
 model DeliveryArea {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   restaurantId String
   areaType     AreaType
-  fee          Int      @default(0)
-
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  fee          Int        @default(0)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, areaType])
 }
@@ -389,10 +370,10 @@ model Product {
   price          Decimal      @db.Decimal(6, 2)
   imageUrl       String?
   ingredients    String[]
-  isVisible      Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   menuCategoryId String
+  isVisible      Boolean      @default(true)
   orderItems     OrderItem[]
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)
   restaurant     Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
@@ -418,6 +399,8 @@ model Order {
   restaurantId      String
   totalAmount       Decimal           @db.Decimal(10, 2)
   deliveryFee       Decimal           @default(0) @db.Decimal(6, 2)
+  status            OrderStatus       @default(PENDING)
+  consumptionMethod ConsumptionMethod @default(DELIVERY)
   deliveryAddress   Json?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -427,12 +410,10 @@ model Order {
   printId           String?
   paymentMethod     String?
   deliveryPersonId  String?
-  delivery          OrderDelivery?
-  consumptionMethod ConsumptionMethod @default(DELIVERY)
-  status            OrderStatus       @default(PENDING)
   restaurant        Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items             OrderItem[]
+  delivery          OrderDelivery?
 }
 
 model OrderDelivery {
@@ -443,35 +424,38 @@ model OrderDelivery {
   pickedUpAt       DateTime?
   deliveredAt      DateTime?
   status           DeliveryStatus @default(ASSIGNED)
-
-  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  deliveryPerson DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_deliveries")
 }
 
 model OrderItem {
-  id                    String   @id @default(uuid())
-  orderId               String
-  productId             String
-  quantity              Int
-  priceAtOrder          Decimal  @db.Decimal(6, 2)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  additionalIngredients Json?
-  customName            String?
-  extras                String?
-  removedIngredients    String?
+  id                           String   @id @default(uuid())
+  orderId                      String
+  productId                    String
+  quantity                     Int
+  priceAtOrder                 Decimal  @db.Decimal(6, 2)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+  additionalIngredients        Json?
+  customName                   String?
+  extras                       String?
+  // 2 Sabores
+  isDouble                     Boolean  @default(false)
+  flavor1Id                    String?
+  flavor1Name                  String?
+  flavor1Removed               String?
+  flavor1additionalIngredients Json?
 
-  // 2 sabores
-  isDouble                     Boolean @default(false)
   flavor2Id                    String?
   flavor2Name                  String?
   flavor2Removed               String?
   flavor2additionalIngredients Json?
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  removedIngredients           String?
+  order                        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product                      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 enum InviteStatus {
@@ -505,9 +489,9 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   PREPARING
-  OUT_FOR_DELIVERY
   DELIVERED
   CANCELED
+  OUT_FOR_DELIVERY
 }
 
 enum ConsumptionMethod {
