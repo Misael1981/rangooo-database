@@ -10,7 +10,8 @@
     "prisma"
   ],
   "scripts": {
-    "build": "npx prisma generate && tsc"
+    "build": "npx prisma generate && tsc",
+    "postinstall": "turbo run generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
