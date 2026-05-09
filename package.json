@@ -1,6 +1,6 @@
 {
   "name": "@misael1981/rangooo-database",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,6 @@
   ],
   "scripts": {
     "build": "npx prisma generate && tsc",
-    "postinstall": "prisma generate",
     "generate": "prisma generate",
     "migrate": "prisma migrate deploy",
     "push": "prisma db push",
