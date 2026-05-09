@@ -3,3 +3,9 @@ src/
 .env
 .github/
 tsconfig.json
+
+generated-client/
+prisma/migrations/
+*.node
+*.so
+*.wasm
