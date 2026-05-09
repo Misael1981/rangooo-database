@@ -1,6 +1,5 @@
 node_modules/
 src/generated/    
-dist/    
 generated-client/        
 .env
 /generated/prisma
