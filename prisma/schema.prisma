@@ -28,6 +28,7 @@ model User {
   addresses          Address[]
   deliveryPerson     DeliveryPerson?
   sessions           Session[]
+  clientPushSubscriptions ClientPushSubscription[]
 
   @@map("users")
 }
@@ -90,6 +91,18 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model ClientPushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  auth      String
+  p256dh    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_push_subscriptions")
 }
 
 model LeadApplication {

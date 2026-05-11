@@ -3,3 +3,4 @@ src/generated/
 generated-client/        
 .env
 /generated/prisma
+/docs
