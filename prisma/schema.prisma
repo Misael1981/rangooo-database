@@ -228,7 +228,6 @@ model Restaurant {
   description                String?
   avatarImageUrl             String?
   coverImageUrl              String?
-  category                   RestaurantCategory            @default(RESTAURANT)
   latitude                   Decimal?
   longitude                  Decimal?
   isOpen                     Boolean                       @default(true)
@@ -256,8 +255,12 @@ model Restaurant {
   onboardingCompleted        Boolean                       @default(false)
   publishedAt                DateTime?
   imagePublicId              String?
-  plan                       PlanType                      @default(BASICO)
   useRangoooDelivery         Boolean                       @default(false)
+
+  deliveryEstimateSettings   DeliveryEstimateSettings?
+  category                   RestaurantCategory            @default(RESTAURANT)
+
+  plan                       PlanType                      @default(BASICO)
   businessHours              BusinessHours[]
   contacts                   ContactNumber[]
   deliveryAreas              DeliveryArea[]
@@ -271,6 +274,28 @@ model Restaurant {
   users                      RestaurantUser[]
 
   @@index([ownerId])
+}
+
+model DeliveryEstimateSettings {
+  id                String     @id @default(uuid())
+  restaurantId      String     @unique
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  // Quantas entregas olhar pra trás pro cálculo da mediana
+  sampleSize        Int        @default(5)
+
+  // Fallback quando não há histórico suficiente (em minutos)
+  fallbackMinutes   Int        @default(40)
+
+  // Ajuste manual somado ao tempo calculado (em minutos) — pode ser negativo
+  manualAdjustment  Int        @default(0)
+
+  // Fator de movimento: multiplica o tempo final
+  mode              EstimateMode @default(FIXED)
+  movementLevel     MovementLevel @default(NORMAL)
+
+  updatedAt         DateTime   @updatedAt
+  createdAt         DateTime   @default(now())
 }
 
 model DeliveryArea {
@@ -575,4 +600,15 @@ enum VehicleType {
   BIKE
   MOTORCYCLE
   CAR
+}
+
+enum MovementLevel {
+  LOW     // 0.9x
+  NORMAL  // 1.0x
+  HIGH    // 1.3x
+}
+
+enum EstimateMode {
+  AUTOMATIC   
+  FIXED       
 }
