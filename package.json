@@ -1,6 +1,6 @@
 {
   "name": "@misael1981/rangooo-database",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,8 @@
     "generate": "prisma generate",
     "migrate": "prisma migrate deploy",
     "push": "prisma db push",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "prepare": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
