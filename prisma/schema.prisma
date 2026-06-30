@@ -16,11 +16,13 @@ model User {
   emailVerified      DateTime?        @map("email_verified")
   image              String?
   phone              String?
-  role               Role             @default(CLIENT)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   password           String?          @map("hashed_password")
   isProfileCompleted Boolean          @default(false)
+
+  restaurantProfiles RestaurantClient[]
+  role               Role             @default(CLIENT)
   orders             Order[]
   restaurants        Restaurant[]
   restaurantRoles    RestaurantUser[]
@@ -31,6 +33,31 @@ model User {
   clientPushSubscriptions ClientPushSubscription[]
 
   @@map("users")
+}
+
+model RestaurantClient {
+  id            String     @id @default(uuid())
+  restaurantId  String
+  userId        String
+  
+  // Métricas úteis para o CRM do restaurante (evita dar COUNT/SUM pesados em toda requisição)
+  totalOrders   Int        @default(1)
+  totalSpent    Decimal    @default(0) @db.Decimal(10, 2)
+  
+  // Notas internas que o restaurante pode anotar sobre o cliente (ex: "Chata com cebola", "Cliente vip")
+  internalNotes String?
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relações
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Um usuário só pode ter um perfil de cliente por restaurante
+  @@unique([restaurantId, userId])
+  @@index([restaurantId])
+  @@map("restaurant_clients")
 }
 
 model Address {
@@ -257,6 +284,7 @@ model Restaurant {
   imagePublicId              String?
   useRangoooDelivery         Boolean                       @default(false)
 
+  clients                    RestaurantClient[]
   deliveryEstimateSettings   DeliveryEstimateSettings?
   category                   RestaurantCategory            @default(RESTAURANT)
 
