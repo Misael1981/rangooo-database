@@ -474,6 +474,9 @@ model Order {
   printId           String?
   paymentMethod     String?
   deliveryPersonId  String?
+
+  estimatedDeliveryMinutes Int?
+  
   preparingAt       DateTime?         // Início da produção
   dispatchedAt      DateTime?         // Saiu para entrega
   deliveredAt       DateTime?         // Entregue ao cliente
