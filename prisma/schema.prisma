@@ -9,6 +9,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ======================================================
+// -------------------- Usuário -------------------------
+
 model User {
   id                 String           @id @default(uuid())
   name               String
@@ -33,53 +36,6 @@ model User {
   clientPushSubscriptions ClientPushSubscription[]
 
   @@map("users")
-}
-
-model RestaurantClient {
-  id            String     @id @default(uuid())
-  restaurantId  String
-  userId        String
-  
-  // Métricas úteis para o CRM do restaurante (evita dar COUNT/SUM pesados em toda requisição)
-  totalOrders   Int        @default(1)
-  totalSpent    Decimal    @default(0) @db.Decimal(10, 2)
-  
-  // Notas internas que o restaurante pode anotar sobre o cliente (ex: "Chata com cebola", "Cliente vip")
-  internalNotes String?
-  
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  // Relações
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Um usuário só pode ter um perfil de cliente por restaurante
-  @@unique([restaurantId, userId])
-  @@index([restaurantId])
-  @@map("restaurant_clients")
-}
-
-model Address {
-  id           String   @id @default(uuid())
-  userId       String
-  name         String?
-  cep          String?
-  street       String
-  number       String
-  complement   String?
-  neighborhood String
-  reference    String?
-  areaType     AreaType @default(URBAN)
-  city         String
-  state        String   @db.Char(2)
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([city])
-  @@map("addresses")
 }
 
 model Account {
@@ -111,13 +67,54 @@ model Session {
   @@map("sessions")
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
+model Address {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String?
+  cep          String?
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  reference    String?
+  areaType     AreaType @default(URBAN)
+  city         String
+  state        String   @db.Char(2)
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([identifier, token])
-  @@map("verification_tokens")
+  @@index([city])
+  @@map("addresses")
+}
+
+// ======================================================
+// -------------------- Clientes ------------------------
+
+model RestaurantClient {
+  id            String     @id @default(uuid())
+  restaurantId  String
+  userId        String
+  
+  // Métricas úteis para o CRM do restaurante (evita dar COUNT/SUM pesados em toda requisição)
+  totalOrders   Int        @default(1)
+  totalSpent    Decimal    @default(0) @db.Decimal(10, 2)
+  
+  // Notas internas que o restaurante pode anotar sobre o cliente (ex: "Chata com cebola", "Cliente vip")
+  internalNotes String?
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relações
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Um usuário só pode ter um perfil de cliente por restaurante
+  @@unique([restaurantId, userId])
+  @@index([restaurantId])
+  @@map("restaurant_clients")
 }
 
 model ClientPushSubscription {
@@ -131,6 +128,9 @@ model ClientPushSubscription {
 
   @@map("client_push_subscriptions")
 }
+
+// ======================================================
+// ------------ Cadastros Estabelecimentos --------------
 
 model LeadApplication {
   id              String             @id @default(cuid())
@@ -167,6 +167,18 @@ model EnrollmentInvite {
 
   @@index([status, expiresAt])
 }
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ======================================================
+// ------------------- Entregadores ---------------------
 
 model DeliveryPerson {
   id                String               @id @default(uuid())
@@ -205,28 +217,6 @@ model PushSubscription {
   deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
 }
 
-model RestaurantPushSubscription {
-  id           String     @id @default(uuid())
-  restaurantId String
-  endpoint     String     @unique
-  auth         String
-  p256dh       String
-  createdAt    DateTime   @default(now())
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-}
-
-model OrderRejection {
-  id               String         @id @default(cuid())
-  orderId          String
-  deliveryPersonId String
-  reason           String?
-  createdAt        DateTime       @default(now())
-  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
-
-  @@index([deliveryPersonId])
-  @@map("order_rejections")
-}
-
 model DeliverySession {
   id                 String         @id @default(cuid())
   deliveryPersonId   String
@@ -246,6 +236,9 @@ model DeliverySession {
   @@unique([deliveryPersonId, date])
   @@map("delivery_sessions")
 }
+
+// ======================================================
+// ----------------- Estabelecimentos -------------------
 
 model Restaurant {
   id                         String                        @id @default(uuid())
@@ -304,43 +297,14 @@ model Restaurant {
   @@index([ownerId])
 }
 
-model DeliveryEstimateSettings {
-  id                String     @id @default(uuid())
-  restaurantId      String     @unique
-  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-
-  // Quantas entregas olhar pra trás pro cálculo da mediana
-  sampleSize        Int        @default(5)
-
-  // Fallback quando não há histórico suficiente (em minutos)
-  fallbackMinutes   Int        @default(40)
-
-  // Ajuste manual somado ao tempo calculado (em minutos) — pode ser negativo
-  manualAdjustment  Int        @default(0)
-
-  // Fator de movimento: multiplica o tempo final
-  mode              EstimateMode @default(FIXED)
-  movementLevel     MovementLevel @default(NORMAL)
-
-  updatedAt         DateTime   @updatedAt
-  createdAt         DateTime   @default(now())
-}
-
-model DeliveryArea {
-  id           String     @id @default(cuid())
+model RestaurantPushSubscription {
+  id           String     @id @default(uuid())
   restaurantId String
-  areaType     AreaType
-  fee          Int        @default(0)
+  endpoint     String     @unique
+  auth         String
+  p256dh       String
+  createdAt    DateTime   @default(now())
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-
-  @@unique([restaurantId, areaType])
-}
-
-model SystemSettings {
-  id                  String @id @default("global")
-  urbanDeliveryFee    Int    @default(800)
-  ruralDeliveryFee    Int    @default(1500)
-  districtDeliveryFee Int    @default(1500)
 }
 
 model RestaurantUser {
@@ -357,20 +321,6 @@ model RestaurantUser {
   @@index([restaurantId])
 }
 
-model RestaurantConsumptionMethod {
-  id           String            @id @default(cuid())
-  restaurantId String
-  method       ConsumptionMethod
-  isActive     Boolean           @default(true)
-  displayOrder Int               @default(0)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  restaurant   Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-
-  @@unique([restaurantId, method])
-  @@index([restaurantId, isActive])
-}
-
 model ContactNumber {
   id           String      @id @default(cuid())
   restaurantId String
@@ -383,6 +333,20 @@ model ContactNumber {
   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@index([restaurantId, type])
+}
+
+model RestaurantConsumptionMethod {
+  id           String            @id @default(cuid())
+  restaurantId String
+  method       ConsumptionMethod
+  isActive     Boolean           @default(true)
+  displayOrder Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  restaurant   Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, method])
+  @@index([restaurantId, isActive])
 }
 
 model BusinessHours {
@@ -415,6 +379,9 @@ model RestaurantPaymentMethod {
   @@unique([restaurantId, method])
   @@index([restaurantId, isActive])
 }
+
+// ======================================================
+// --------------------- Produtos -----------------------
 
 model MenuCategory {
   id                    String                 @id @default(uuid())
@@ -459,6 +426,9 @@ model AdditionalIngredient {
   @@index([menuCategoryId])
 }
 
+// ======================================================
+// --------------------- Pedidos ------------------------
+
 model Order {
   id                String            @id @default(uuid())
   userId            String
@@ -486,6 +456,50 @@ model Order {
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items             OrderItem[]
   delivery          OrderDelivery?
+}
+
+model DeliveryEstimateSettings {
+  id                String     @id @default(uuid())
+  restaurantId      String     @unique
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  // Quantas entregas olhar pra trás pro cálculo da mediana
+  sampleSize        Int        @default(5)
+
+  // Fallback quando não há histórico suficiente (em minutos)
+  fallbackMinutes   Int        @default(40)
+
+  // Ajuste manual somado ao tempo calculado (em minutos) — pode ser negativo
+  manualAdjustment  Int        @default(0)
+
+  // Fator de movimento: multiplica o tempo final
+  mode              EstimateMode @default(FIXED)
+  movementLevel     MovementLevel @default(NORMAL)
+
+  updatedAt         DateTime   @updatedAt
+  createdAt         DateTime   @default(now())
+}
+
+model DeliveryArea {
+  id           String     @id @default(cuid())
+  restaurantId String
+  areaType     AreaType
+  fee          Int        @default(0)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, areaType])
+}
+
+model OrderRejection {
+  id               String         @id @default(cuid())
+  orderId          String
+  deliveryPersonId String
+  reason           String?
+  createdAt        DateTime       @default(now())
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+
+  @@index([deliveryPersonId])
+  @@map("order_rejections")
 }
 
 model OrderDelivery {
@@ -529,6 +543,19 @@ model OrderItem {
   order                        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product                      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
+
+// ======================================================
+// --------------------- Sistema ------------------------
+
+model SystemSettings {
+  id                  String @id @default("global")
+  urbanDeliveryFee    Int    @default(800)
+  ruralDeliveryFee    Int    @default(1500)
+  districtDeliveryFee Int    @default(1500)
+}
+
+// ======================================================
+// ---------------------- Enums -------------------------
 
 enum InviteStatus {
   PENDING
