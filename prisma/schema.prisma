@@ -89,6 +89,28 @@ model Address {
   @@map("addresses")
 }
 
+model DeliveryArea {
+  id           String     @id @default(cuid())
+  restaurantId String
+  areaType     AreaType
+  fee          Int        @default(0)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, areaType])
+}
+
+model ClientPushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  auth      String
+  p256dh    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_push_subscriptions")
+}
+
 // ======================================================
 // -------------------- Clientes ------------------------
 
@@ -115,66 +137,6 @@ model RestaurantClient {
   @@unique([restaurantId, userId])
   @@index([restaurantId])
   @@map("restaurant_clients")
-}
-
-model ClientPushSubscription {
-  id        String   @id @default(uuid())
-  userId    String
-  endpoint  String   @unique
-  auth      String
-  p256dh    String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("client_push_subscriptions")
-}
-
-// ======================================================
-// ------------ Cadastros Estabelecimentos --------------
-
-model LeadApplication {
-  id              String             @id @default(cuid())
-  name            String
-  email           String
-  phone           String
-  restaurantName  String
-  notes           String?
-  status          LeadStatus         @default(PENDING)
-  approvedAt      DateTime?
-  approvedBy      String?
-  createdAt       DateTime           @default(now())
-  city            String
-  state           String
-  rejectedAt      DateTime?
-  rejectionReason String?
-  invites         EnrollmentInvite[]
-
-  @@unique([email, status])
-  @@index([status, createdAt])
-}
-
-model EnrollmentInvite {
-  id           String          @id @default(cuid())
-  leadId       String
-  email        String
-  token        String          @unique
-  expiresAt    DateTime
-  usedAt       DateTime?
-  status       InviteStatus    @default(PENDING)
-  createdAt    DateTime        @default(now())
-  restaurantId String?
-  lead         LeadApplication @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@index([status, expiresAt])
-}
-
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
 }
 
 // ======================================================
@@ -235,6 +197,80 @@ model DeliverySession {
 
   @@unique([deliveryPersonId, date])
   @@map("delivery_sessions")
+}
+
+model OrderRejection {
+  id               String         @id @default(cuid())
+  orderId          String
+  deliveryPersonId String
+  reason           String?
+  createdAt        DateTime       @default(now())
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+
+  @@index([deliveryPersonId])
+  @@map("order_rejections")
+}
+
+model OrderDelivery {
+  id               String         @id @default(uuid())
+  orderId          String         @unique
+  deliveryPersonId String
+  assignedAt       DateTime       @default(now())
+  pickedUpAt       DateTime?
+  deliveredAt      DateTime?
+  status           DeliveryStatus @default(ASSIGNED)
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_deliveries")
+}
+
+// ======================================================
+// ------------ Cadastros Estabelecimentos --------------
+
+model LeadApplication {
+  id              String             @id @default(cuid())
+  name            String
+  email           String
+  phone           String
+  restaurantName  String
+  notes           String?
+  status          LeadStatus         @default(PENDING)
+  approvedAt      DateTime?
+  approvedBy      String?
+  createdAt       DateTime           @default(now())
+  city            String
+  state           String
+  rejectedAt      DateTime?
+  rejectionReason String?
+  invites         EnrollmentInvite[]
+
+  @@unique([email, status])
+  @@index([status, createdAt])
+}
+
+model EnrollmentInvite {
+  id           String          @id @default(cuid())
+  leadId       String
+  email        String
+  token        String          @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  status       InviteStatus    @default(PENDING)
+  createdAt    DateTime        @default(now())
+  restaurantId String?
+  lead         LeadApplication @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 // ======================================================
@@ -478,42 +514,6 @@ model DeliveryEstimateSettings {
 
   updatedAt         DateTime   @updatedAt
   createdAt         DateTime   @default(now())
-}
-
-model DeliveryArea {
-  id           String     @id @default(cuid())
-  restaurantId String
-  areaType     AreaType
-  fee          Int        @default(0)
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-
-  @@unique([restaurantId, areaType])
-}
-
-model OrderRejection {
-  id               String         @id @default(cuid())
-  orderId          String
-  deliveryPersonId String
-  reason           String?
-  createdAt        DateTime       @default(now())
-  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
-
-  @@index([deliveryPersonId])
-  @@map("order_rejections")
-}
-
-model OrderDelivery {
-  id               String         @id @default(uuid())
-  orderId          String         @unique
-  deliveryPersonId String
-  assignedAt       DateTime       @default(now())
-  pickedUpAt       DateTime?
-  deliveredAt      DateTime?
-  status           DeliveryStatus @default(ASSIGNED)
-  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id])
-  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@map("order_deliveries")
 }
 
 model OrderItem {
