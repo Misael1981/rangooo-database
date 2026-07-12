@@ -159,6 +159,8 @@ model DeliveryPerson {
   rating            Float?
   ratingCount       Int                  @default(0)
   vehiclePlate      String?
+
+  deliveryIncidents DeliveryIncident[]
   vehicleType       VehicleType?
   pushSubscriptions PushSubscription[]
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -223,6 +225,20 @@ model OrderDelivery {
   order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_deliveries")
+}
+
+model DeliveryIncident {
+  id               String         @id @default(cuid())
+  deliveryPersonId String
+  storeId          String         // ID do estabelecimento que reportou (ajuste conforme seu modelo de Store)
+  orderId          String?        // Opcional: se o incidente aconteceu em um pedido específico
+  description      String         // Detalhes do ocorrido
+  createdAt        DateTime       @default(now())
+  
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryPersonId])
+  @@map("delivery_incidents")
 }
 
 // ======================================================
