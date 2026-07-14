@@ -235,6 +235,7 @@ model DeliveryIncident {
   description      String         // Detalhes do ocorrido
   createdAt        DateTime       @default(now())
   
+  restaurant       Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
 
   @@index([deliveryPersonId])
@@ -329,6 +330,7 @@ model Restaurant {
   imagePublicId              String?
   useRangoooDelivery         Boolean                       @default(false)
 
+  deliveryIncident           DeliveryIncident[]
   clients                    RestaurantClient[]
   deliveryEstimateSettings   DeliveryEstimateSettings?
   category                   RestaurantCategory            @default(RESTAURANT)
