@@ -330,6 +330,8 @@ model Restaurant {
   imagePublicId              String?
   useRangoooDelivery         Boolean                       @default(false)
 
+  subscription               Subscription?
+
   deliveryIncident           DeliveryIncident[]
   clients                    RestaurantClient[]
   deliveryEstimateSettings   DeliveryEstimateSettings?
@@ -573,6 +575,72 @@ model SystemSettings {
 }
 
 // ======================================================
+// ------------- Assinaturas e Contratos ----------------
+
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  name          String         // Ex: "Plano Básico", "Plano Pro"
+  description   String?
+  price         Decimal        @db.Decimal(10, 2)
+  billingCycle  BillingCycle   @default(MONTHLY)
+  features      Json?          // Lista de recursos/limites incluídos no plano
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  restaurantId         String             @unique // Relação 1:1 com Restaurant
+  planId               String
+  status               SubscriptionStatus @default(ACTIVE)
+  
+  // Datas do contrato e vencimento
+  startDate            DateTime           @default(now())
+  currentPeriodStart   DateTime           @default(now())
+  currentPeriodEnd     DateTime
+  canceledAt           DateTime?
+  
+  // Aceite do Contrato Online
+  contractAcceptedAt   DateTime?
+  contractAcceptedIp   String?
+  contractVersion      String?            @default("v1.0")
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  restaurant           Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  plan                 SubscriptionPlan   @relation(fields: [planId], references: [id])
+  receipts             PaymentReceipt[]
+
+  @@index([status, currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+model PaymentReceipt {
+  id             String               @id @default(cuid())
+  subscriptionId String
+  receiptNumber  Int                  @default(autoincrement())
+  amount         Decimal              @db.Decimal(10, 2)
+  paidAt         DateTime             @default(now())
+  status         PaymentReceiptStatus @default(PAID)
+  paymentMethod  String?              // Ex: "PIX", "Boleto", "Cartão"
+  notes          String?              // Observações do recibo
+  
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  subscription   Subscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("payment_receipts")
+}
+
+// ======================================================
 // ---------------------- Enums -------------------------
 
 enum InviteStatus {
@@ -687,4 +755,25 @@ enum MovementLevel {
 enum EstimateMode {
   AUTOMATIC   
   FIXED       
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+  TRIALING
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+enum PaymentReceiptStatus {
+  PAID
+  PENDING
+  REFUNDED
 }
