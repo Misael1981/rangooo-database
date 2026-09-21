@@ -640,6 +640,18 @@ model PaymentReceipt {
   @@map("payment_receipts")
 }
 
+model ContractTemplate {
+  id          String   @id @default(cuid())
+  version     String   @unique // Ex: "v1.0", "v1.1"
+  title       String   // Ex: "Contrato de Prestação de Serviços e Adesão"
+  content     String   @db.Text // Texto em Markdown ou HTML com os placeholders {{...}}
+  isActive    Boolean  @default(true) // Apenas 1 template ativo por vez para novos aceites
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("contract_templates")
+}
+
 // ======================================================
 // ---------------------- Enums -------------------------
 
