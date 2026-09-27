@@ -297,10 +297,12 @@ model Restaurant {
   id                         String                        @id @default(uuid())
   ownerId                    String
   name                       String
+  cnpj                       String?                       @unique
   slug                       String                        @unique
   description                String?
   avatarImageUrl             String?
   coverImageUrl              String?
+  email                      String?
   latitude                   Decimal?
   longitude                  Decimal?
   isOpen                     Boolean                       @default(true)
@@ -308,6 +310,23 @@ model Restaurant {
   updatedAt                  DateTime                      @updatedAt
   brandColors                Json?
   socialMedia                Json?
+  category                   RestaurantCategory            @default(RESTAURANT)
+  contacts                   ContactNumber[]
+  owner                      User                          @relation(fields: [ownerId], references: [id])
+  users                      RestaurantUser[]
+  restaurantPushSubscription RestaurantPushSubscription[]
+  
+  // Operacional do Estabelecimento
+  plan                       PlanType                      @default(BASICO)
+  clients                    RestaurantClient[]
+  businessHours              BusinessHours[]
+  menuCategories             MenuCategory[]
+  orders                     Order[]
+  products                   Product[]
+  consumptionMethods         RestaurantConsumptionMethod[]
+  paymentMethods             RestaurantPaymentMethod[]
+
+  //Endereço
   city                       String?
   complement                 String?
   neighborhood               String?
@@ -315,41 +334,31 @@ model Restaurant {
   state                      String?                       @db.VarChar(2)
   street                     String?
   zipCode                    String?
-  email                      String?
+  
+  // Impressão
   agentVersion               String?
   lastPrintedAt              DateTime?
   printerConfig              Json?
   printerStatus              String?                       @default("disconnected")
   printerType                String?
   printingToken              String?                       @unique
+  
+  //Entrega
   deliveryFee                Decimal?                      @db.Decimal(6, 2)
+  useRangoooDelivery         Boolean                       @default(false)
+  deliveryIncident           DeliveryIncident[]
+  deliveryEstimateSettings   DeliveryEstimateSettings?
+  deliveryAreas              DeliveryArea[]
+  
+  //Onboarding
   isConfigured               Boolean                       @default(false)
   onboardingStep             Int                           @default(1)
   onboardingCompleted        Boolean                       @default(false)
   publishedAt                DateTime?
   imagePublicId              String?
-  useRangoooDelivery         Boolean                       @default(false)
 
+  // Financeiro
   subscription               Subscription?
-
-  deliveryIncident           DeliveryIncident[]
-  clients                    RestaurantClient[]
-  deliveryEstimateSettings   DeliveryEstimateSettings?
-  category                   RestaurantCategory            @default(RESTAURANT)
-
-  plan                       PlanType                      @default(BASICO)
-  businessHours              BusinessHours[]
-  contacts                   ContactNumber[]
-  deliveryAreas              DeliveryArea[]
-  menuCategories             MenuCategory[]
-  orders                     Order[]
-  products                   Product[]
-  owner                      User                          @relation(fields: [ownerId], references: [id])
-  consumptionMethods         RestaurantConsumptionMethod[]
-  paymentMethods             RestaurantPaymentMethod[]
-  restaurantPushSubscription RestaurantPushSubscription[]
-  users                      RestaurantUser[]
-
   @@index([ownerId])
 }
 
@@ -577,25 +586,9 @@ model SystemSettings {
 // ======================================================
 // ------------- Assinaturas e Contratos ----------------
 
-model SubscriptionPlan {
-  id            String         @id @default(cuid())
-  name          String         // Ex: "Plano Básico", "Plano Pro"
-  description   String?
-  price         Decimal        @db.Decimal(10, 2)
-  billingCycle  BillingCycle   @default(MONTHLY)
-  features      Json?          // Lista de recursos/limites incluídos no plano
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  subscriptions Subscription[]
-
-  @@map("subscription_plans")
-}
-
 model Subscription {
   id                   String             @id @default(cuid())
-  restaurantId         String             @unique // Relação 1:1 com Restaurant
+  restaurantId         String             @unique 
   planId               String
   status               SubscriptionStatus @default(ACTIVE)
   
@@ -621,15 +614,34 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  name          String         // Ex: "Plano Básico", "Plano Pro"
+  description   String?
+  price         Decimal        @db.Decimal(10, 2)
+  billingCycle  BillingCycle   @default(MONTHLY)
+  features      Json?          
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
 model PaymentReceipt {
   id             String               @id @default(cuid())
   subscriptionId String
   receiptNumber  Int                  @default(autoincrement())
   amount         Decimal              @db.Decimal(10, 2)
-  paidAt         DateTime             @default(now())
-  status         PaymentReceiptStatus @default(PAID)
-  paymentMethod  String?              // Ex: "PIX", "Boleto", "Cartão"
-  notes          String?              // Observações do recibo
+  
+  dueDate        DateTime             // 👈 Data limite de Vencimento do boleto/fatura
+  paidAt         DateTime?            // 👈 Opcional: só preenche no momento em que o pagamento for CONFIRMADO
+  
+  status         PaymentReceiptStatus @default(PENDING) // 👈 Começa como PENDING até ser pago
+  paymentMethod  String?              // Ex: "PIX", "BOLETO", "CARTAO", "MANUAL"
+  notes          String?              // Observações / Comprovante
   
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
@@ -637,19 +649,37 @@ model PaymentReceipt {
   subscription   Subscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([subscriptionId])
+  @@index([status])
   @@map("payment_receipts")
 }
 
 model ContractTemplate {
   id          String   @id @default(cuid())
-  version     String   @unique // Ex: "v1.0", "v1.1"
-  title       String   // Ex: "Contrato de Prestação de Serviços e Adesão"
-  content     String   @db.Text // Texto em Markdown ou HTML com os placeholders {{...}}
+  version     String   @unique 
+  title       String   
+  content     String   @db.Text
   isActive    Boolean  @default(true) // Apenas 1 template ativo por vez para novos aceites
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("contract_templates")
+}
+
+// ======================================================
+// -------------------- Impressão -----------------------
+
+model SystemRelease {
+  id          String   @id @default(cuid())
+  appName     String   @default("Rangooo Print Agent") // Ex: "Rangooo Print Agent"
+  version     String   // Ex: "v1.2.0"
+  downloadUrl String   // Link direto da Release no GitHub (ex: https://github.com/.../release.exe)
+  changelog   String?  // O que mudou (ex: "Melhoria no corte do papel e velocidade")
+  isCurrent   Boolean  @default(true) // Marca qual é a versão ativa/mais recente
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_releases")
 }
 
 // ======================================================
@@ -785,7 +815,8 @@ enum BillingCycle {
 }
 
 enum PaymentReceiptStatus {
-  PAID
-  PENDING
-  REFUNDED
+  PENDING   // Fatura gerada / Aguardando pagamento
+  PAID      // Pago
+  OVERDUE   // Vencido
+  CANCELED  // Cancelado
 }
