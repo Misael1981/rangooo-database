@@ -574,16 +574,6 @@ model OrderItem {
 }
 
 // ======================================================
-// --------------------- Sistema ------------------------
-
-model SystemSettings {
-  id                  String @id @default("global")
-  urbanDeliveryFee    Int    @default(800)
-  ruralDeliveryFee    Int    @default(1500)
-  districtDeliveryFee Int    @default(1500)
-}
-
-// ======================================================
 // ------------- Assinaturas e Contratos ----------------
 
 model Subscription {
@@ -670,16 +660,26 @@ model ContractTemplate {
 
 model SystemRelease {
   id          String   @id @default(cuid())
-  appName     String   @default("Rangooo Print Agent") // Ex: "Rangooo Print Agent"
-  version     String   // Ex: "v1.2.0"
+  appName     String   @default("Rangooo Print Agent")
+  version     String   // Ex: "1.2.0"
   downloadUrl String   // Link direto da Release no GitHub (ex: https://github.com/.../release.exe)
   changelog   String?  // O que mudou (ex: "Melhoria no corte do papel e velocidade")
-  isCurrent   Boolean  @default(true) // Marca qual é a versão ativa/mais recente
-  
+  isCurrent   Boolean  @default(false) // Marca qual é a versão ativa/mais recente
+  publishedAt DateTime @default(now())
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([appName, version])
+  @@index([appName, publishedAt])
   @@map("system_releases")
+}
+
+model SystemSettings {
+  id                  String @id @default("global")
+  urbanDeliveryFee    Int    @default(800)
+  ruralDeliveryFee    Int    @default(1500)
+  districtDeliveryFee Int    @default(1500)
 }
 
 // ======================================================
