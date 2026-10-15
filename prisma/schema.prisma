@@ -68,8 +68,9 @@ model Session {
 }
 
 model Address {
-  id           String   @id @default(uuid())
-  userId       String
+  id           String                 @id @default(uuid())
+  userId       String?
+  customerId   String?
   name         String?
   cep          String?
   street       String
@@ -77,13 +78,14 @@ model Address {
   complement   String?
   neighborhood String
   reference    String?
-  areaType     AreaType @default(URBAN)
+  areaType     AreaType               @default(URBAN)
   city         String
-  state        String   @db.Char(2)
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  state        String                 @db.Char(2)
+  isDefault    Boolean                @default(false)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  user         User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer     RestaurantCustomer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([city])
   @@map("addresses")
@@ -138,6 +140,25 @@ model RestaurantClient {
   @@index([restaurantId])
   @@map("restaurant_clients")
 }
+
+// Tabela de clientes do telefone
+
+model RestaurantCustomer {
+  id           String   @id @default(uuid())
+  restaurantId String
+  name         String
+  phone        String?
+  customerCode Int      
+
+  addresses    Address[]
+  orders       Order[]
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, customerCode])
+  @@index([restaurantId])
+  @@map("restaurant_customers")
+}
+
 
 // ======================================================
 // ------------------- Entregadores ---------------------
@@ -319,6 +340,7 @@ model Restaurant {
   // Operacional do Estabelecimento
   plan                       PlanType                      @default(BASICO)
   clients                    RestaurantClient[]
+  customers                  RestaurantCustomer[]
   businessHours              BusinessHours[]
   menuCategories             MenuCategory[]
   orders                     Order[]
@@ -496,7 +518,8 @@ model AdditionalIngredient {
 
 model Order {
   id                String            @id @default(uuid())
-  userId            String
+  userId            String?
+  customerId        String?
   restaurantId      String
   totalAmount       Decimal           @db.Decimal(10, 2)
   deliveryFee       Decimal           @default(0) @db.Decimal(6, 2)
@@ -512,13 +535,14 @@ model Order {
 
   estimatedDeliveryMinutes Int?
   
-  preparingAt       DateTime?         // Início da produção
-  dispatchedAt      DateTime?         // Saiu para entrega
-  deliveredAt       DateTime?         // Entregue ao cliente
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  restaurant        Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preparingAt       DateTime?          // Início da produção
+  dispatchedAt      DateTime?          // Saiu para entrega
+  deliveredAt       DateTime?          // Entregue ao cliente
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  restaurant        Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer          RestaurantCustomer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
   items             OrderItem[]
   delivery          OrderDelivery?
 }
