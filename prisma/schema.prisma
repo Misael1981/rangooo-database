@@ -477,6 +477,9 @@ model MenuCategory {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   displayOrder          Int                    @default(0)
+  // 2 Sabores
+  isDouble                     Boolean  @default(false)
+  
   additionalIngredients AdditionalIngredient[]
   restaurant            Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   products              Product[]
