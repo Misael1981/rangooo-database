@@ -368,9 +368,9 @@ model Restaurant {
   //Entrega
   deliveryFee                Decimal?                      @db.Decimal(6, 2)
   useRangoooDelivery         Boolean                       @default(false)
+  deliveryAreas              DeliveryArea[]
   deliveryIncident           DeliveryIncident[]
   deliveryEstimateSettings   DeliveryEstimateSettings?
-  deliveryAreas              DeliveryArea[]
   
   //Onboarding
   isConfigured               Boolean                       @default(false)
@@ -534,7 +534,9 @@ model Order {
   orderNumber       Int?
   printId           String?
   paymentMethod     String?
+  changeAmount      Decimal?           @db.Decimal(10, 2)
   deliveryPersonId  String?
+  notes             String?
 
   estimatedDeliveryMinutes Int?
   
