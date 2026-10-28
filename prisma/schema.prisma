@@ -468,6 +468,40 @@ model RestaurantPaymentMethod {
 }
 
 // ======================================================
+// ---------------------- KDS ---------------------------
+
+model KdsUser {
+  id           String   @id @default(cuid())
+  restaurantId String   // ID da loja do ecossistema Rangooo
+  name         String   // Ex: "João da Cozinha" ou "Maria (Forno)"
+  username     String   // Ex: "cozinha1", "maria"
+  pinHash      String   // Senha simples ou hash numérico (ex: "1234")
+  role         String   @default("OPERATOR") // OPERATOR, CHEF, MANAGER
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relacionamento com os logs de operações feitas por este usuário
+  orderLogs    OrderKdsOperationLog[]
+
+  @@unique([restaurantId, username])
+}
+
+model OrderKdsOperationLog {
+  id           String   @id @default(cuid())
+  restaurantId String
+  orderId      String   // ID do pedido principal do Rangooo
+  kdsUserId    String   // Quem executou a ação
+  kdsUser      KdsUser  @relation(fields: [kdsUserId], references: [id], onDelete: Cascade)
+  
+  // Métricas de tempo da operação
+  action       String   // EX: "STARTED_PREP", "FINISHED_PREP", "ORDER_READY"
+  station      String?  // EX: "MONTAGEM", "FORNO", "EMBALAGEM" (se quiser separar por praça)
+  
+  createdAt    DateTime @default(now()) // Momento exato em que a ação foi disparada
+}
+
+// ======================================================
 // --------------------- Produtos -----------------------
 
 model MenuCategory {
