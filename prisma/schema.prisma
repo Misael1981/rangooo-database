@@ -470,35 +470,64 @@ model RestaurantPaymentMethod {
 // ======================================================
 // ---------------------- KDS ---------------------------
 
+enum KdsRole {
+  OPERATOR
+  CHEF
+  MANAGER
+}
+
+enum KdsAction {
+  STARTED_PREP
+  FINISHED_PREP
+  ORDER_READY
+}
+
 model KdsUser {
   id           String   @id @default(cuid())
-  restaurantId String   // ID da loja do ecossistema Rangooo
-  name         String   // Ex: "João da Cozinha" ou "Maria (Forno)"
-  username     String   // Ex: "cozinha1", "maria"
-  pinHash      String   // Senha simples ou hash numérico (ex: "1234")
-  role         String   @default("OPERATOR") // OPERATOR, CHEF, MANAGER
+  restaurantId String
+  name         String
+  username     String
+  pinHash      String
+  role         KdsRole  @default(OPERATOR)
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relacionamento com os logs de operações feitas por este usuário
-  orderLogs    OrderKdsOperationLog[]
+  logs         OrderKdsOperationLog[]
 
   @@unique([restaurantId, username])
+  @@index([restaurantId])
+}
+
+model KdsStation {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  order        Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  logs         OrderKdsOperationLog[]
+
+  @@unique([restaurantId, name])
+  @@index([restaurantId])
 }
 
 model OrderKdsOperationLog {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   restaurantId String
-  orderId      String   // ID do pedido principal do Rangooo
-  kdsUserId    String   // Quem executou a ação
-  kdsUser      KdsUser  @relation(fields: [kdsUserId], references: [id], onDelete: Cascade)
-  
-  // Métricas de tempo da operação
-  action       String   // EX: "STARTED_PREP", "FINISHED_PREP", "ORDER_READY"
-  station      String?  // EX: "MONTAGEM", "FORNO", "EMBALAGEM" (se quiser separar por praça)
-  
-  createdAt    DateTime @default(now()) // Momento exato em que a ação foi disparada
+  orderId      String
+  kdsUserId    String
+  kdsUser      KdsUser     @relation(fields: [kdsUserId], references: [id], onDelete: Restrict)
+  stationId    String?
+  station      KdsStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  action       KdsAction
+  createdAt    DateTime    @default(now())
+
+  @@index([restaurantId, orderId])
+  @@index([restaurantId, createdAt])
+  @@index([kdsUserId])
 }
 
 // ======================================================
