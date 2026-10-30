@@ -500,14 +500,15 @@ model KdsUser {
 }
 
 model KdsStation {
-  id           String   @id @default(cuid())
-  restaurantId String
-  name         String
-  order        Int      @default(0)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  restaurantId     String
+  name             String
+  order            Int      @default(0)
+  estimatedMinutes Int      @default(5)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
-  logs         OrderKdsOperationLog[]
+  logs             OrderKdsOperationLog[]
 
   @@unique([restaurantId, name])
   @@index([restaurantId])
