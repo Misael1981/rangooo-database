@@ -348,6 +348,10 @@ model Restaurant {
   consumptionMethods         RestaurantConsumptionMethod[]
   paymentMethods             RestaurantPaymentMethod[]
 
+  //SDK
+  kdsUsers            KdsUser[]
+  kdsStations         KdsStation[]
+
   //Endereço
   city                       String?
   complement                 String?
@@ -494,6 +498,7 @@ model KdsUser {
   updatedAt    DateTime @updatedAt
 
   logs         OrderKdsOperationLog[]
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, username])
   @@index([restaurantId])
@@ -509,6 +514,7 @@ model KdsStation {
   createdAt        DateTime @default(now())
 
   logs             OrderKdsOperationLog[]
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@unique([restaurantId, name])
   @@index([restaurantId])
