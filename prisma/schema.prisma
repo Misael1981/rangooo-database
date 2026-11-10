@@ -349,8 +349,8 @@ model Restaurant {
   paymentMethods             RestaurantPaymentMethod[]
 
   //SDK
-  kdsUsers            KdsUser[]
-  kdsStations         KdsStation[]
+  kdsUsers                   KdsUser[]
+  kdsStations                KdsStation[]
 
   //Endereço
   city                       String?
@@ -607,6 +607,9 @@ model Order {
   changeAmount      Decimal?           @db.Decimal(10, 2)
   deliveryPersonId  String?
   notes             String?
+
+  // Pedidos feito casa
+  isManual          Boolean           @default(false)
 
   estimatedDeliveryMinutes Int?
   
